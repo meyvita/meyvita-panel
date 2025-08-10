@@ -1,207 +1,46 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Meyvita - Hızlı Sipariş</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
-  header{background:#111;color:#fff;padding:14px 16px;text-align:center}
-  header h1{margin:0;font-size:18px;letter-spacing:.3px}
-  header .sub{font-size:12px;opacity:.85;margin-top:4px}
-  main{max-width:760px;margin:16px auto;padding:0 12px 120px}
-  .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #eee}
-  .row{display:grid;grid-template-columns:1.2fr 110px 96px;gap:8px;align-items:center}
-  .row+.row{margin-top:8px}
-  .row label{font-size:14px}
-  .input,.row input,.row select{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px;width:100%}
-  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .btn{width:100%;padding:12px 14px;border:none;border-radius:10px;font-size:16px;cursor:pointer}
-  .btn.primary{background:#111;color:#fff}
-  .btn.print{background:#f1f1f1;color:#111;border:1px solid #ddd}
-  .btn.alt{background:#fff;color:#111;border:1px solid #ddd}
-  .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
-  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #eee;padding:10px 12px}
-  .footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .hint{font-size:12px;color:#666}
-  .totals{font-size:14px;color:#444}
-  /* Yazdırma */
-  @media print{
-    header, main>.card:not(#receipt), footer{display:none!important}
-    #receipt{display:block!important;border:none;padding:0}
-    #ticket{width:80mm;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:12px;line-height:1.25;margin:0}
-    #ticket h2,#ticket p{margin:0}
-    #ticket .center{text-align:center}
-    #ticket .line{border-top:1px dashed #000;margin:6px 0}
-    #ticket table{width:100%;border-collapse:collapse}
-    #ticket th,#ticket td{text-align:left;padding:2px 0}
-    #ticket th.qty,#ticket td.qty,#ticket th.unit,#ticket td.unit{text-align:right}
-  }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meyvita Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #fff8f0;
+            margin: 0;
+            padding: 0;
+        }
+        header {
+            background-color: orange;
+            color: white;
+            padding: 15px;
+            font-size: 24px;
+        }
+        main {
+            margin: 30px;
+        }
+        button {
+            padding: 15px 25px;
+            background-color: green;
+            color: white;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            border-radius: 8px;
+        }
+        button:hover {
+            background-color: darkgreen;
+        }
+    </style>
 </head>
 <body>
-<header>
-  <h1>Meyvita • Hızlı Sipariş</h1>
-  <div class="sub">Etiler • Emirgan • Bebek — 12:00'ye kadar verilen siparişler aynı gün teslim.</div>
-</header>
-
-<main>
-  <!-- Teslimat -->
-  <div class="card">
-    <div style="font-weight:700;margin-bottom:8px">Teslimat Bilgileri</div>
-    <div class="two">
-      <input id="name" class="input" placeholder="Ad Soyad" />
-      <input id="phone" class="input" placeholder="Telefon" />
-    </div>
-    <div class="two" style="margin-top:8px">
-      <input id="address" class="input" placeholder="Adres" />
-      <select id="zone" class="input">
-        <option value="">Bölge seçin</option>
-        <option>Etiler</option><option>Emirgan</option><option>Bebek</option>
-      </select>
-    </div>
-  </div>
-
-  <!-- Meyve & Sebze -->
-  <div class="card">
-    <div style="font-weight:700;margin-bottom:8px">Meyve & Sebze</div>
-    <div class="row"><label>Avokado (69 TL/adet)</label><input type="number" min="0" step="1" placeholder="adet" data-item="Avokado" data-price="69" class="qty"><select class="unit"><option>adet</option></select></div>
-    <div class="row"><label>Portakal (95 TL/kg)</label><input type="number" min="0" step="0.5" placeholder="kg" data-item="Portakal" data-price="95" class="qty"><select class="unit"><option>kg</option></select></div>
-    <div class="row"><label>Limon (160 TL/kg)</label><input type="number" min="0" step="0.5" placeholder="kg" data-item="Limon" data-price="160" class="qty"><select class="unit"><option>kg</option></select></div>
-    <div class="row"><label>Ananas (130 TL/adet)</label><input type="number" min="0" step="1" placeholder="adet" data-item="Ananas" data-price="130" class="qty"><select class="unit"><option>adet</option></select></div>
-  </div>
-
-  <!-- Sular -->
-  <div class="card">
-    <div style="font-weight:700;margin-bottom:8px">Soğuk Sıkım Sular</div>
-    <div class="row"><label>Portakal suyu (169 TL/lt)</label><input type="number" min="0" step="0.5" placeholder="litre" data-item="Portakal suyu" data-price="169" class="qty"><select class="unit"><option>litre</option></select></div>
-    <div class="row"><label>Limon suyu (229 TL/lt)</label><input type="number" min="0" step="0.5" placeholder="litre" data-item="Limon suyu" data-price="229" class="qty"><select class="unit"><option>litre</option></select></div>
-    <div class="row"><label>Ananas suyu (495 TL/lt)</label><input type="number" min="0" step="0.5" placeholder="litre" data-item="Ananas suyu" data-price="495" class="qty"><select class="unit"><option>litre</option></select></div>
-  </div>
-
-  <!-- Not -->
-  <div class="card">
-    <input id="note" class="input" placeholder="Not (örn: 16:00 sonrası teslim)" />
-  </div>
-
-  <!-- Özet + Fiş -->
-  <div id="receipt" class="card" style="display:none;">
-    <div style="font-weight:700;margin-bottom:8px">Sipariş Özeti</div>
-    <div id="summary" class="totals"></div>
-
-    <div class="actions">
-      <button class="btn alt" id="copy">Panoya kopyala</button>
-      <button class="btn alt" id="email">E-posta</button>
-    </div>
-
-    <div class="hint" style="margin-top:6px">“Fişi Yazdır” ile termal çıktı alabilirsiniz.</div>
-
-    <div id="ticket" style="display:none">
-      <div class="center">
-        <h2>Meyvita</h2>
-        <p>Etiler • Emirgan • Bebek</p>
-        <p>Tel: 0XXX XXX XX XX</p>
-      </div>
-      <div class="line"></div>
-      <p id="t-meta"></p>
-      <div class="line"></div>
-      <table id="t-items">
-        <thead><tr><th>Ürün</th><th class="qty">Miktar</th><th class="unit">Birim</th></tr></thead>
-        <tbody></tbody>
-      </table>
-      <div class="line"></div>
-      <p>Not: <span id="t-note">-</span></p>
-      <p class="center">Teşekkürler! 🌿</p>
-    </div>
-  </div>
-</main>
-
-<footer>
-  <div class="footer-grid">
-    <button class="btn primary" id="build">Siparişi Oluştur</button>
-    <button class="btn print" id="print" disabled>Fişi Yazdır</button>
-  </div>
-</footer>
-
-<script>
-let lastOrder=null;
-
-function money(n){ return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0}).format(n||0); }
-
-function buildOrder(){
-  const name=document.getElementById('name').value.trim();
-  const phone=document.getElementById('phone').value.trim();
-  const address=document.getElementById('address').value.trim();
-  const zone=document.getElementById('zone').value.trim();
-  const note=document.getElementById('note').value.trim();
-
-  const rows=[...document.querySelectorAll('.row')];
-  const items=[];
-  rows.forEach(r=>{
-    const qty=r.querySelector('.qty'); const unit=r.querySelector('.unit');
-    if(!qty) return;
-    const v=parseFloat(qty.value);
-    if(!isNaN(v)&&v>0){
-      const p=parseFloat(qty.dataset.price||'0');
-      items.push({name:qty.dataset.item,qty:v,unit:unit.value,price:p,subtotal:p*v});
-    }
-  });
-
-  if(items.length===0){ alert('En az bir ürün miktarı giriniz.'); return; }
-
-  const total=items.reduce((s,i)=>s+i.subtotal,0);
-  lastOrder={name,phone,address,zone,note,items,total};
-
-  // Özet
-  const sum=document.getElementById('summary');
-  sum.innerHTML = `
-    <div><b>${name||'-'}</b> • ${phone||'-'} • ${zone||'-'}<br>${address||'-'}</div>
-    <div style="margin-top:8px">${items.map(i=>• ${i.name}: <b>${i.qty}</b> ${i.unit} — ${money(i.subtotal)}).join('<br>')}</div>
-    <div style="margin-top:8px;font-weight:700">Toplam: ${money(total)}</div>
-  `;
-
-  // Fiş içeriği
-  document.getElementById('t-meta').textContent=Müşteri: ${name||'-'}  Tel: ${phone||'-'}  Bölge: ${zone||'-'}  Adres: ${address||'-'};
-  const tbody=document.querySelector('#t-items tbody');
-  tbody.innerHTML=items.map(i=><tr><td>${i.name}</td><td class="qty">${i.qty}</td><td class="unit">${i.unit}</td></tr>).join('');
-  document.getElementById('t-note').textContent=note||'-';
-
-  document.getElementById('receipt').style.display='block';
-  document.getElementById('ticket').style.display='block';
-  document.getElementById('print').disabled=false;
-  window.scrollTo({top:document.getElementById('receipt').offsetTop-12,behavior:'smooth'});
-}
-
-function printTicket(){ window.print(); }
-
-function copyToClipboard(){
-  if(!lastOrder){ alert('Önce siparişi oluşturun.'); return; }
-  const lines=[];
-  lines.push('MEYVITA SIPARIS');
-  lines.push(Müşteri: ${lastOrder.name||'-'});
-  lines.push(Tel: ${lastOrder.phone||'-'});
-  lines.push(Bölge: ${lastOrder.zone||'-'});
-  lines.push(Adres: ${lastOrder.address||'-'});
-  lines.push('----- ÜRÜNLER -----');
-  lastOrder.items.forEach(i=>lines.push(• ${i.name}: ${i.qty} ${i.unit} — ${money(i.subtotal)}));
-  lines.push('-------------------');
-  lines.push(Toplam: ${money(lastOrder.total)});
-  lines.push(Not: ${lastOrder.note||'-'});
-  navigator.clipboard.writeText(lines.join('\n')).then(()=>alert('Sipariş metni kopyalandı ✔'));
-}
-
-function sendEmail(){
-  if(!lastOrder){ alert('Önce siparişi oluşturun.'); return; }
-  const subject=encodeURIComponent('Meyvita Sipariş');
-  const body=encodeURIComponent(document.getElementById('summary').innerText);
-  window.location.href=mailto:mayvita48@gmail.com?subject=${subject}&body=${body};
-}
-
-document.getElementById('build').addEventListener('click',buildOrder);
-document.getElementById('print').addEventListener('click',printTicket);
-document.getElementById('copy').addEventListener('click',copyToClipboard);
-document.getElementById('email').addEventListener('click',sendEmail);
-</script>
+    <header>Meyvita Sipariş Paneli</header>
+    <main>
+        <h2>Hoş geldiniz 🍊🍋</h2>
+        <p>Buradan siparişlerinizi takip edebilirsiniz.</p>
+        <button>Sipariş Listesini Gör</button>
+    </main>
 </body>
 </html>
