@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meyvita Sipariş Paneli</title>
+<style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    h1 { text-align: center; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+    th { background-color: #f4f4f4; }
+    input[type="number"] { width: 60px; }
+    button { padding: 8px 12px; margin-top: 20px; cursor: pointer; }
+</style>
+</head>
+<body>
+<h1>Meyvita Sipariş Paneli</h1>
+<p>Google Sheets'teki ürünler burada listelenir. Miktar girip yazdırabilirsiniz.</p>
+
+<table id="urunTablosu">
+    <thead>
+        <tr>
+            <th>Ürün</th>
+            <th>Birim</th>
+            <th>Fiyat (₺)</th>
+            <th>Miktar</th>
+        </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<button onclick="yazdir()">Yazdır</button>
+
+<script>
+const sheetCSV = "https://docs.google.com/spreadsheets/d/1oFofVAu7DIE5RIQu8PnDw9hIDBl25Bxe7oMQjVLYD8g/export?format=csv";
+
+fetch(sheetCSV)
+    .then(response => response.text())
+    .then(data => {
+        const rows = data.split("\n").map(row => row.split(","));
+        const tbody = document.querySelector("#urunTablosu tbody");
+        rows.slice(1).forEach(row => {
+            const [urun, birim, fiyat, kategori, gorsel, aktif] = row;
+            if (aktif && aktif.trim().toLowerCase() === "evet") {
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${urun}</td>
+                    <td>${birim}</td>
+                    <td>${fiyat}</td>
+                    <td><input type="number" min="0"></td>
+                `;
+                tbody.appendChild(tr);
+            }
+        });
+    });
+
+function yazdir() {
+    window.print();
+}
+</script>
+
+</body>
+</html>
