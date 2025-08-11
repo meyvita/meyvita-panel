@@ -173,41 +173,43 @@ async function loadProducts(){
 let lastOrder=null;
 
 function buildOrder(){
-  const name=document.getElementById('name').value.trim();
-  const phone=document.getElementById('phone').value.trim();
-  const address=document.getElementById('address').value.trim();
-  const zone=document.getElementById('zone').value.trim();
-  const note=document.getElementById('note').value.trim();
+  const name   = document.getElementById('name').value.trim();
+  const phone  = document.getElementById('phone').value.trim();
+  const address= document.getElementById('address').value.trim();
+  const zone   = document.getElementById('zone').value.trim();
+  const note   = document.getElementById('note').value.trim();
 
   const qtys=[...document.querySelectorAll('.qty')];
   const items=[];
   qtys.forEach(input=>{
     const v=parseFloat(input.value);
     if(!isNaN(v) && v>0){
-      const price=parseFloat(input.dataset.price||'0');
-      const unit=input.dataset.unit||'';
-      const name=input.dataset.item||'';
-      items.push({name, qty:v, unit, price, subtotal: price*v});
+      items.push({
+        name: input.dataset.item||'',
+        qty:  v,
+        unit: input.dataset.unit||''
+      });
     }
   });
 
   if(items.length===0){ alert('En az bir ürün miktarı giriniz.'); return; }
 
-  const total=items.reduce((s,i)=>s+i.subtotal,0);
-  lastOrder={ name, phone, address, zone, note, items, total };
-
+  // Ekrandaki özet (toplamı göstermiyoruz)
   const sum=document.getElementById('summary');
   sum.innerHTML = `
     <div><b>${name||'-'}</b> • ${phone||'-'} • ${zone||'-'}<br>${address||'-'}</div>
-    <div style="margin-top:8px">${items.map(i=>`• ${i.name}: <b>${i.qty}</b> ${i.unit} — ${money(i.subtotal)}`).join('<br>')}</div>
-    <div style="margin-top:8px;font-weight:700">Toplam: ${money(total)}</div>
+    <div style="margin-top:8px">${items.map(i=>`• ${i.name}: <b>${i.qty}</b> ${i.unit}`).join('<br>')}</div>
+    ${note ? `<div style="margin-top:8px">Not: ${note}</div>` : '' }
   `;
 
-  document.getElementById('t-meta').textContent =
-    `Müşteri: ${name||'-'}  Tel: ${phone||'-'}  Bölge: ${zone||'-'}  Adres: ${address||'-'}`;
+  // Fiş içeriği
   const tbody=document.querySelector('#t-items tbody');
   tbody.innerHTML = items.map(i=>`<tr><td>${i.name}</td><td class="qty">${i.qty}</td><td class="unit">${i.unit}</td></tr>`).join('');
-  document.getElementById('t-note').textContent = note || '-';
+
+  document.getElementById('t-date').textContent    = 'Tarih: ' + new Date().toLocaleString('tr-TR');
+  document.getElementById('t-name').textContent    = 'Ad Soyad: ' + (name||'-');
+  document.getElementById('t-phone').textContent   = 'Telefon: ' + (phone||'-');
+  document.getElementById('t-address').textContent = 'Adres: ' + (address||'-') + (zone ? ' • ' + zone : '');
 
   document.getElementById('receipt').style.display='block';
   document.getElementById('ticket').style.display='block';
@@ -217,11 +219,15 @@ function buildOrder(){
 
 function printTicket(){ window.print(); }
 
+// ... (diğer kodlar kalsın)
+</script>
+
 document.getElementById('build').addEventListener('click', buildOrder);
 document.getElementById('print').addEventListener('click', printTicket);
 window.addEventListener('load', loadProducts);
 </script>
 </body>
 </html>
+
 
 
