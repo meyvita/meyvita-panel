@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meyvita - Siparişler (Yönetim)</title>
+<style>
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:16px;background:#fafafa;color:#222}
+  h1{font-size:20px;margin:0 0 12px}
+  table{width:100%;border-collapse:collapse;background:#fff}
+  th,td{border:1px solid #eee;padding:8px;font-size:14px}
+  th{background:#f6f6f6;text-align:left}
+  button{padding:6px 10px;border:1px solid #ddd;background:#fff;border-radius:8px;cursor:pointer}
+  .toolbar{display:flex;gap:8px;margin-bottom:10px}
+  #ticket{display:none}
+  @media print{ body>*:not(#ticket){display:none} #ticket{display:block} }
+</style>
+</head>
+<body>
+  <h1>📦 Gelen Siparişler</h1>
+  <div class="toolbar">
+    <button onclick="load()">Yenile</button>
+    <a href="index.html"><button>Yeni Sipariş</button></a>
+  </div>
+  <table id="tbl">
+    <thead>
+      <tr><th>Tarih</th><th>Ad Soyad</th><th>Telefon</th><th>Adres</th><th>Bölge</th><th>Not</th><th>Kalemler</th><th>Yazdır</th></tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <!-- Yazdırma fişi -->
+  <div id="ticket">
+    <h2 style="text-align:center;margin:0">Meyvita</h2>
+    <hr>
+    <div id="t-meta"></div>
+    <hr>
+    <div id="t-items"></div>
+    <p style="text-align:center">Teşekkürler! 🌿</p>
+  </div>
+
+<script>
+// Siparisler sayfasını GVIZ ile oku (sheet parametresiyle isimden çekiyoruz)
+const GVIZ_URL = "https://docs.google.com/spreadsheets/d/1oFofVAu7DIE5RIQu8PnDw9hIDBl25Bxe7oMQjVLYD8g/gviz/tq?tqx=out:json&sheet=Siparisler";
+
+function load(){
+  fetch(GVIZ_URL, {cache:'no-store'}).then(r=>r.text()).then(t=>{
+    const json = JSON.parse(t.substring(t.indexOf('{'), t.lastIndexOf('}')+2));
+    const rows = json.table.rows || [];
+    const body = document.querySelector('#tbl tbody');
+    body.innerHTML = '';
+    rows.forEach(r=>{
+      const c = r.c || [];
+      const tarih   = c[0]?.f || c[0]?.v || '';
+      const ad      = c[1]?.v || '';
+      const tel     = c[2]?.v || '';
+      const adres   = c[3]?.v || '';
+      const bolge   = c[4]?.v || '';
+      const not     = c[5]?.v || '';
+      const kalem   = c[6]?.v || '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${tarih}</td><td>${ad}</td><td>${tel}</td><td>${adres}</td><td>${bolge}</td><td>${not}</td><td>${kalem}</td>
+                      <td><button onclick="printRow(this)">Yazdır</button></td>`;
+      body.appendChild(tr);
+    });
+  }).catch(()=> alert('Siparişler yüklenemedi.'));
+}
+
+function printRow(btn){
+  const tr = btn.closest('tr').children;
+  const meta = `Tarih: ${tr[0].textContent}<br>Ad: ${tr[1].textContent}<br>Tel: ${tr[2].textContent}<br>Adres: ${tr[3].textContent} • ${tr[4].textContent}<br>Not: ${tr[5].textContent}`;
+  document.getElementById('t-meta').innerHTML = meta;
+  const items = (tr[6].textContent||'').split('|').map(s=>s.trim()).filter(Boolean);
+  document.getElementById('t-items').innerHTML = items.map(i=>`• ${i}`).join('<br>');
+  window.print();
+}
+
+window.addEventListener('load', load);
+</script>
+</body>
+</html>

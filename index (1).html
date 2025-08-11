@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meyvita - Hızlı Sipariş (Müşteri)</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;margin:0;background:#fafafa;color:#222}
+  header{background:#111;color:#fff;padding:14px 16px;text-align:center}
+  header h1{margin:0;font-size:18px;letter-spacing:.3px}
+  header .sub{font-size:12px;opacity:.85;margin-top:4px}
+  main{max-width:760px;margin:16px auto;padding:0 12px 120px}
+  .card{background:#fff;border-radius:12px;padding:14px;margin-bottom:12px;border:1px solid #eee}
+  .row{display:grid;grid-template-columns:1.2fr 110px 96px;gap:8px;align-items:center}
+  .row+.row{margin-top:8px}
+  .row label{font-size:14px}
+  .input,.row input,.row select{padding:10px 12px;border:1px solid #ddd;border-radius:10px;font-size:14px;width:100%}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .btn{width:100%;padding:12px 14px;border:none;border-radius:10px;font-size:16px;cursor:pointer}
+  .btn.primary{background:#111;color:#fff}
+  .btn.print{background:#f1f1f1;color:#111;border:1px solid #ddd}
+  .hint{font-size:12px;color:#666}
+  .totals{font-size:14px;color:#444}
+  footer{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #eee;padding:10px 12px}
+  .footer-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  @media print{ header, main, footer{display:none} }
+</style>
+</head>
+<body>
+<header>
+  <h1>Meyvita • Hızlı Sipariş</h1>
+</header>
+
+<main>
+  <div class="card">
+    <div style="font-weight:700;margin-bottom:8px">Teslimat Bilgileri</div>
+    <div class="two">
+      <input id="name" class="input" placeholder="Ad Soyad">
+      <input id="phone" class="input" placeholder="Telefon">
+    </div>
+    <div class="two" style="margin-top:8px">
+      <input id="address" class="input" placeholder="Adres">
+      <select id="zone" class="input">
+        <option value="">Bölge seçin</option><option>Etiler</option><option>Emirgan</option><option>Bebek</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card" id="products">
+    <div style="font-weight:700;margin-bottom:8px">Ürünler</div>
+    <div id="list"><div class="hint">Ürünler yükleniyor…</div></div>
+    <div class="hint" id="updated"></div>
+  </div>
+
+  <div class="card">
+    <input id="note" class="input" placeholder="Not (örn: 16:00 sonrası teslim)">
+  </div>
+</main>
+
+<footer>
+  <div class="footer-grid">
+    <button class="btn primary" id="build">Siparişi Gönder</button>
+    <a class="btn print" href="orders.html" style="text-align:center;display:block;line-height:22px">Siparişleri Gör</a>
+  </div>
+</footer>
+
+<script>
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1oFofVAu7DIE5RIQu8PnDw9hIDBl25Bxe7oMQjVLYD8g/export?format=csv";
+// TODO: BURAYA Apps Script Web App URL'ni yapıştır.
+const WEB_APP_URL = "BURAYA_APPS_SCRIPT_WEB_APP_URL";
+
+function norm(s){
+  return (s||"").toString().toLowerCase()
+    .replaceAll("ü","u").replaceAll("ğ","g").replaceAll("ş","s")
+    .replaceAll("ı","i").replaceAll("ö","o").replaceAll("ç","c")
+    .replace(/[^\w]+/g,"").trim();
+}
+
+function parseCSV(text){
+  const rows = text.split(/\r?\n/).filter(r=>r.trim()!=="").map(r=>r.split(",").map(c=>c.trim()));
+  const head = rows.shift().map(h=>norm(h));
+  return rows.map(cols => Object.fromEntries(cols.map((v,i)=>[head[i]||("col"+i), v])));
+}
+
+async function loadProducts(){
+  const res = await fetch(CSV_URL, {cache:'no-store'});
+  const txt = await res.text();
+  const data = parseCSV(txt);
+
+  const items = data.map(r=>({
+    urun: r.urun || r.urunadi || r.urunad || r.product || "",
+    birim: r.birim || r.unit || "",
+    fiyat: parseFloat(String(r.fiyat||"0").replace(",", ".")) || 0,
+    kategori: r.kategori || r.category || "Genel",
+    aktif: String(r.aktif||"").toLowerCase().includes("evet")
+  })).filter(p => p.urun && p.aktif);
+
+  const byCat = {};
+  items.forEach(p => (byCat[p.kategori] = byCat[p.kategori] || []).push(p));
+
+  const list = document.getElementById("list");
+  list.innerHTML = "";
+  Object.keys(byCat).forEach(cat=>{
+    const h = document.createElement("div");
+    h.style.cssText = "font-weight:700;margin:6px 0 8px";
+    h.textContent = cat;
+    list.appendChild(h);
+
+    byCat[cat].forEach(p=>{
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `
+        <label>${p.urun} ( ${p.fiyat} / ${p.birim||"-"} )</label>
+        <input type="number" min="0" step="0.5" placeholder="${p.birim||''}" class="qty"
+               data-item="${p.urun}" data-unit="${p.birim||''}">
+        <div style="text-align:right;color:#555">${p.birim||""}</div>
+      `;
+      list.appendChild(row);
+    });
+  });
+
+  document.getElementById("updated").textContent =
+    "Liste güncellendi: " + new Date().toLocaleString("tr-TR");
+}
+
+function buildOrder(){
+  const name   = document.getElementById('name').value.trim();
+  const phone  = document.getElementById('phone').value.trim();
+  const address= document.getElementById('address').value.trim();
+  const zone   = document.getElementById('zone').value.trim();
+  const note   = document.getElementById('note').value.trim();
+
+  const qtys=[...document.querySelectorAll('.qty')];
+  const items=[];
+  qtys.forEach(input=>{
+    const v=parseFloat(input.value);
+    if(!isNaN(v) && v>0){
+      items.push({
+        name: input.dataset.item||'',
+        qty:  v,
+        unit: input.dataset.unit||''
+      });
+    }
+  });
+
+  if(items.length===0){ alert('En az bir ürün miktarı giriniz.'); return; }
+
+  // KAYDET
+  if(WEB_APP_URL.includes("http")){
+    fetch(WEB_APP_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ name, phone, address, zone, note, items })
+    }).then(r=>r.text()).then(()=>{
+      alert('Siparişiniz alındı. Teşekkürler!');
+      window.location.href = 'orders.html'; // yönetici sayfasına yönlendir
+    }).catch(()=>alert('Kaydederken sorun oluştu.'));
+  } else {
+    alert('Siparişiniz alındı (demo).');
+  }
+}
+
+document.getElementById('build').addEventListener('click', buildOrder);
+window.addEventListener('load', loadProducts);
+</script>
+</body>
+</html>
