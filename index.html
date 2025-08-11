@@ -102,14 +102,9 @@
 </footer>
 
 <script>
-/* === YALNIZCA ŞU ID'Yİ DEĞİŞTİRME: Senin Sheet ID'in bu === */
 const SHEET_ID = "1oFofVAu7DIE5RIQu8PnDw9hIDBl25Bxe7oMQjVLYD8g";
-/* =========================================================== */
+const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
 
-/* Google Sheets'ten JSON veri çek (gviz) — CSV'den daha sağlam */
-const GVIZ_URL = https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json;
-
-/* Başlıkları normalle: küçük harfe çevir, Türkçe karakterleri sadeleştir */
 function norm(s){
   return (s||"").toString().toLowerCase()
     .replaceAll("ü","u").replaceAll("ğ","g").replaceAll("ş","s")
@@ -117,48 +112,32 @@ function norm(s){
     .replace(/[^\w]+/g,"").trim();
 }
 
-function money(n){ return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0}).format(n||0); }
+function parseCSV(text){
+  const rows = text.split(/\r?\n/).filter(r=>r.trim()!=="").map(r=>r.split(",").map(c=>c.trim()));
+  const head = rows.shift().map(h=>norm(h));
+  return rows.map(cols => Object.fromEntries(cols.map((v,i)=>[head[i]||("col"+i), v])));
+}
+
+function money(n){
+  return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0}).format(n||0);
+}
 
 async function loadProducts(){
   try{
-    const res = await fetch(GVIZ_URL, {cache:"no-store"});
-    const text = await res.text();
-    const json = JSON.parse(text.substring(text.indexOf("{"), text.lastIndexOf("}")+1));
-    const table = json.table;
+    const res = await fetch(CSV_URL, {cache:'no-store'});
+    const txt = await res.text();
+    const data = parseCSV(txt);
 
-    // Başlık haritalama
-    const headers = table.cols.map(c => norm(c.label));
-    // Beklenen: urun, birim, fiyat, kategori, aktif (sıra fark etmez)
-    const ix = {
-      urun: headers.indexOf("urun") !== -1 ? headers.indexOf("urun") : headers.indexOf("urunadi") ,
-      birim: headers.indexOf("birim"),
-      fiyat: headers.indexOf("fiyat"),
-      kategori: headers.indexOf("kategori"),
-      aktif: headers.indexOf("aktif")
-    };
+    const items = data.map(r=>({
+      urun: r.urun || r.urunadi || r.urunad || "",
+      birim: r.birim || "",
+      fiyat: parseFloat(String(r.fiyat||"0").replace(",", ".")) || 0,
+      kategori: r.kategori || "Genel",
+      aktif: String(r.aktif||"").toLowerCase().includes("evet")
+    })).filter(p => p.urun && p.aktif);
 
-    const rows = table.rows || [];
-    const products = [];
-
-    rows.forEach(r=>{
-      const cells = r.c || [];
-      const val = i => (cells[i] && (cells[i].v ?? cells[i].f ?? "") ) || "";
-      const p = {
-        urun: String(val(ix.urun)).trim(),
-        birim: String(val(ix.birim)).trim(),
-        fiyat: parseFloat(String(val(ix.fiyat)).replace(",", ".")) || 0,
-        kategori: String(val(ix.kategori)||"Genel").trim(),
-        aktif: String(val(ix.aktif)||"").toLowerCase().includes("evet")
-      };
-      if(p.urun && p.aktif) products.push(p);
-    });
-
-    // Kategoriye göre gruplama
     const byCat = {};
-    products.forEach(p=>{
-      const k = p.kategori || "Genel";
-      (byCat[k] = byCat[k] || []).push(p);
-    });
+    items.forEach(p => (byCat[p.kategori] = byCat[p.kategori] || []).push(p));
 
     const list = document.getElementById("list");
     list.innerHTML = "";
@@ -167,7 +146,6 @@ async function loadProducts(){
       h.style.cssText = "font-weight:700;margin:6px 0 8px";
       h.textContent = cat;
       list.appendChild(h);
-
       byCat[cat].forEach(p=>{
         const row = document.createElement("div");
         row.className = "row";
@@ -181,16 +159,16 @@ async function loadProducts(){
       });
     });
 
-    const now = new Date();
-    document.getElementById("updated").textContent = "Liste güncellendi: " + now.toLocaleString("tr-TR");
+    document.getElementById("updated").textContent =
+      "Liste güncellendi: " + new Date().toLocaleString("tr-TR");
   }catch(e){
     console.error(e);
     document.getElementById("list").innerHTML =
-      '<div class="hint" style="color:#b00">Ürünler yüklenemedi. Sheets paylaşımı "Bağlantıya sahip olan herkes → Görüntüleyebilir" olmalı.</div>';
+      '<div class="hint" style="color:#b00">Ürünler yüklenemedi. Paylaşımı “Bağlantıya sahip olan herkes → Görüntüleyebilir” yapın.</div>';
   }
 }
 
-let lastOrder = null;
+let lastOrder=null;
 
 function buildOrder(){
   const name=document.getElementById('name').value.trim();
@@ -219,15 +197,14 @@ function buildOrder(){
   const sum=document.getElementById('summary');
   sum.innerHTML = `
     <div><b>${name||'-'}</b> • ${phone||'-'} • ${zone||'-'}<br>${address||'-'}</div>
-    <div style="margin-top:8px">${items.map(i=>• ${i.name}: <b>${i.qty}</b> ${i.unit} — ${money(i.subtotal)}).join('<br>')}</div>
+    <div style="margin-top:8px">${items.map(i=>`• ${i.name}: <b>${i.qty}</b> ${i.unit} — ${money(i.subtotal)}`).join('<br>')}</div>
     <div style="margin-top:8px;font-weight:700">Toplam: ${money(total)}</div>
   `;
 
-  // Fiş
   document.getElementById('t-meta').textContent =
-    Müşteri: ${name||'-'}  Tel: ${phone||'-'}  Bölge: ${zone||'-'}  Adres: ${address||'-'};
+    `Müşteri: ${name||'-'}  Tel: ${phone||'-'}  Bölge: ${zone||'-'}  Adres: ${address||'-'}`;
   const tbody=document.querySelector('#t-items tbody');
-  tbody.innerHTML = items.map(i=><tr><td>${i.name}</td><td class="qty">${i.qty}</td><td class="unit">${i.unit}</td></tr>).join('');
+  tbody.innerHTML = items.map(i=>`<tr><td>${i.name}</td><td class="qty">${i.qty}</td><td class="unit">${i.unit}</td></tr>`).join('');
   document.getElementById('t-note').textContent = note || '-';
 
   document.getElementById('receipt').style.display='block';
@@ -244,3 +221,4 @@ window.addEventListener('load', loadProducts);
 </script>
 </body>
 </html>
+
