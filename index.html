@@ -44,7 +44,6 @@
 </header>
 
 <main>
-  <!-- Teslimat -->
   <div class="card">
     <div style="font-weight:700;margin-bottom:8px">Teslimat Bilgileri</div>
     <div class="two">
@@ -59,7 +58,6 @@
     </div>
   </div>
 
-  <!-- Ürünler (Sheets'ten gelecek) -->
   <div class="card" id="products">
     <div style="font-weight:700;margin-bottom:8px">Ürünler</div>
     <div id="list"><div class="hint">Ürünler yükleniyor…</div></div>
@@ -70,30 +68,28 @@
     <input id="note" class="input" placeholder="Not (örn: 16:00 sonrası teslim)">
   </div>
 
-  <!-- Özet + Fiş -->
   <div id="receipt" class="card" style="display:none;">
     <div style="font-weight:700;margin-bottom:8px">Sipariş Özeti</div>
     <div id="summary" class="totals"></div>
     <div id="ticket" style="display:none">
-  <div class="center">
-    <h2>MEYVITA</h2>
-    <p>Taze Sıkım Meyve Suyu</p>
+      <div class="center">
+        <h2>MEYVITA</h2>
+        <p>Taze Sıkım Meyve Suyu</p>
+      </div>
+      <div class="line"></div>
+      <p id="t-date"></p>
+      <p id="t-name"></p>
+      <p id="t-phone"></p>
+      <p id="t-address"></p>
+      <div class="line"></div>
+      <table id="t-items">
+        <thead><tr><th>Ürün</th><th class="qty">Miktar</th><th class="unit">Birim</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <div class="line"></div>
+      <p class="center">Teşekkürler! 🌿</p>
+    </div>
   </div>
-  <div class="line"></div>
-  <p id="t-date"></p>
-  <p id="t-name"></p>
-  <p id="t-phone"></p>
-  <p id="t-address"></p>
-  <div class="line"></div>
-  <table id="t-items">
-    <thead>
-      <tr><th>Ürün</th><th class="qty">Miktar</th><th class="unit">Birim</th></tr>
-    </thead>
-    <tbody></tbody>
-  </table>
-  <div class="line"></div>
-  <p class="center">Teşekkürler! 🌿</p>
-</div>
 </main>
 
 <footer>
@@ -104,8 +100,7 @@
 </footer>
 
 <script>
-const SHEET_ID = "1oFofVAu7DIE5RIQu8PnDw9hIDBl25Bxe7oMQjVLYD8g";
-const CSV_URL = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv`;
+const CSV_URL = "https://docs.google.com/spreadsheets/d/1oFofVAu7DIE5RIQu8PnDw9hIDBl25Bxe7oMQjVLYD8g/export?format=csv";
 
 function norm(s){
   return (s||"").toString().toLowerCase()
@@ -120,10 +115,6 @@ function parseCSV(text){
   return rows.map(cols => Object.fromEntries(cols.map((v,i)=>[head[i]||("col"+i), v])));
 }
 
-function money(n){
-  return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:0}).format(n||0);
-}
-
 async function loadProducts(){
   try{
     const res = await fetch(CSV_URL, {cache:'no-store'});
@@ -131,10 +122,10 @@ async function loadProducts(){
     const data = parseCSV(txt);
 
     const items = data.map(r=>({
-      urun: r.urun || r.urunadi || r.urunad || "",
-      birim: r.birim || "",
+      urun: r.urun || r.urunadi || r.urunad || r.product || "",
+      birim: r.birim || r.unit || "",
       fiyat: parseFloat(String(r.fiyat||"0").replace(",", ".")) || 0,
-      kategori: r.kategori || "Genel",
+      kategori: r.kategori || r.category || "Genel",
       aktif: String(r.aktif||"").toLowerCase().includes("evet")
     })).filter(p => p.urun && p.aktif);
 
@@ -148,13 +139,14 @@ async function loadProducts(){
       h.style.cssText = "font-weight:700;margin:6px 0 8px";
       h.textContent = cat;
       list.appendChild(h);
+
       byCat[cat].forEach(p=>{
         const row = document.createElement("div");
         row.className = "row";
         row.innerHTML = `
-          <label>${p.urun} (${money(p.fiyat)}/${p.birim||"-"})</label>
+          <label>${p.urun} (${(p.fiyat||0).toLocaleString('tr-TR')} / ${p.birim||"-"})</label>
           <input type="number" min="0" step="0.5" placeholder="${p.birim||''}" class="qty"
-                 data-item="${p.urun}" data-price="${p.fiyat}" data-unit="${p.birim||''}">
+                 data-item="${p.urun}" data-unit="${p.birim||''}">
           <div style="text-align:right;color:#555">${p.birim||""}</div>
         `;
         list.appendChild(row);
@@ -166,11 +158,9 @@ async function loadProducts(){
   }catch(e){
     console.error(e);
     document.getElementById("list").innerHTML =
-      '<div class="hint" style="color:#b00">Ürünler yüklenemedi. Paylaşımı “Bağlantıya sahip olan herkes → Görüntüleyebilir” yapın.</div>';
+      '<div class="hint" style="color:#b00">Ürünler yüklenemedi. Sheets paylaşımı “Bağlantıya sahip olan herkes → Görüntüleyebilir” olmalı.</div>';
   }
 }
-
-let lastOrder=null;
 
 function buildOrder(){
   const name   = document.getElementById('name').value.trim();
@@ -194,15 +184,12 @@ function buildOrder(){
 
   if(items.length===0){ alert('En az bir ürün miktarı giriniz.'); return; }
 
-  // Ekrandaki özet (toplamı göstermiyoruz)
   const sum=document.getElementById('summary');
   sum.innerHTML = `
     <div><b>${name||'-'}</b> • ${phone||'-'} • ${zone||'-'}<br>${address||'-'}</div>
     <div style="margin-top:8px">${items.map(i=>`• ${i.name}: <b>${i.qty}</b> ${i.unit}`).join('<br>')}</div>
-    ${note ? `<div style="margin-top:8px">Not: ${note}</div>` : '' }
-  `;
+    ${note ? `<div style="margin-top:8px">Not: ${note}</div>` : '' }`;
 
-  // Fiş içeriği
   const tbody=document.querySelector('#t-items tbody');
   tbody.innerHTML = items.map(i=>`<tr><td>${i.name}</td><td class="qty">${i.qty}</td><td class="unit">${i.unit}</td></tr>`).join('');
 
@@ -219,15 +206,9 @@ function buildOrder(){
 
 function printTicket(){ window.print(); }
 
-// ... (diğer kodlar kalsın)
-</script>
-
 document.getElementById('build').addEventListener('click', buildOrder);
 document.getElementById('print').addEventListener('click', printTicket);
 window.addEventListener('load', loadProducts);
 </script>
 </body>
 </html>
-
-
-
